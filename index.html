@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input type="text" id="message">
+    <br>
+    <button id="send">send</button>
+    <div id="messages"></div>
+
+    <script>
+        const URL = "wss://wawebsocket.onrender.com";
+        let websocket;
+        const messagesDiv = document.getElementById("messages");
+        let connected = false;
+        let banned = false;
+
+        //setTimeout(tryConnection, 1000);
+        tryConnection();
+        function tryConnection(){
+            websocket = new WebSocket(URL);
+            if(websocket.CLOSED && !websocket.CONNECTING && !websocket.CLOSING && !websocket.OPEN){
+                console.log('connecting: '+websocket.CONNECTING+' closing: '+websocket.CLOSING+' open'+websocket.OPEN);
+                console.log('asked for new');
+                setTimeout(tryConnection, 5000);
+                return;
+            }
+
+
+            websocket.onopen = function(event) {
+                if(!banned){
+                    alert("Pripojeno");
+                }
+                connected = true;
+                console.log('pripojeno');
+            }
+            websocket.onmessage = function(event) {
+                if(`${event.data}` == 'SERVER_MESSAGE: Banned.'){
+                    alert('Odpojeno');
+                    banned = true;
+                }
+                else if(`${event.data}` == 'SERVER_MESSAGE: Unbanned.'){
+                    alert('Pripojeno');
+                    banned = false;
+                }
+                console.log('got message');
+                messagesDiv.innerHTML = `<p>${event.data}</p>` + messagesDiv.innerHTML;
+            };
+            websocket.onclose = function(event) {
+                if(!banned && connected) {
+                    alert("Odpojeno");
+                }
+                connected = false;
+                console.log('odpojeno');
+                setTimeout(tryConnection, 1000);
+            };
+            websocket.addEventListener('error', (error) => {
+                console.error('WebSocket error:', error);
+            });
+        }
+
+        document.getElementById("send").addEventListener("click", function() {
+            if(connected){
+                const message = document.getElementById("message").value;
+                websocket.send(message);
+            }
+        });
+    </script>
+</body>
+</html>
